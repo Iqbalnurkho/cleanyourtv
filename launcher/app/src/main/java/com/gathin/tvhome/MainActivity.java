@@ -193,6 +193,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private List<RaceWeekend.Race> raceCalendar;
     private View racePanel;
     private TextView raceKicker, raceHeadline, raceSessions;
+    private View prayerPanel;
+    private TextView prayerKicker, prayerTimes;
     /** config.xml show_stats, overridable by a theme. Off: the line is gone and nothing is read. */
     private boolean showStats;
     private boolean shamsi;
@@ -372,6 +374,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         public void run() {
             updateGreeting();
             updateRace();
+            updatePrayer();
             // The pill follows the network callbacks and each return to Home; only the diya's flame follows the
             // signal level, so only it needs this minute's binder calls (about 7 ms on the UI thread).
             if (festive) updateWifiLabel();
@@ -494,6 +497,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         raceKicker = findViewById(R.id.raceKicker);
         raceHeadline = findViewById(R.id.raceHeadline);
         raceSessions = findViewById(R.id.raceSessions);
+        prayerPanel = findViewById(R.id.prayerPanel);
+        prayerKicker = findViewById(R.id.prayerKicker);
+        prayerTimes = findViewById(R.id.prayerTimes);
         showStats = cfg.showStats;
         shamsi = cfg.shamsiDate;
         lunarDate = findViewById(R.id.lunarDate);
@@ -971,6 +977,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (openLiveTvAfterBoot()) return;
         updateGreeting();
         updateRace();
+        updatePrayer();
         // The network and Inputs pills keep their state while Home is in the background, and callbacks update them
         // when the network or the inputs change, so this refresh only catches anything missed. Its binder calls
         // (about 7 ms on a TCL C755, most of it WifiManager.getConnectionInfo) would hold up the first frame back
@@ -2577,6 +2584,36 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         raceSessions.setText(row);
         racePanel.setVisibility(View.VISIBLE);
+    }
+
+    // ---- prayer times (worked out on the TV, see PrayerTimes) ----------------------------------------
+
+    private static final String[] PRAYER_NAMES = {"SUBUH", "SYURUK", "DZUHUR", "ASHAR", "MAGHRIB", "ISYA"};
+
+    /** Text only, set once a minute with the clock: the next prayer is bright, the ones passed fade. */
+    private void updatePrayer() {
+        java.time.LocalDateTime now = java.time.LocalDateTime.now(java.time.ZoneId.of("Asia/Jakarta"));
+        java.time.LocalDate date = now.toLocalDate();
+        java.time.LocalTime[] times = PrayerTimes.on(date);
+        int next = PrayerTimes.next(times, now.toLocalTime());
+        java.time.LocalDateTime target = next >= 0 ? date.atTime(times[next])
+                : date.plusDays(1).atTime(PrayerTimes.on(date.plusDays(1))[0]);
+        long mins = Math.max(1, (java.time.Duration.between(now, target).getSeconds() + 59) / 60);
+        String in = mins < 60 ? mins + "m" : (mins / 60) + "j " + (mins % 60) + "m";
+        prayerKicker.setText("Bandung  \u00B7  " + PRAYER_NAMES[next >= 0 ? next : 0] + " dalam " + in);
+
+        android.text.SpannableStringBuilder row = new android.text.SpannableStringBuilder();
+        for (int i = 0; i < times.length; i++) {
+            if (i > 0) row.append("     ");
+            int start = row.length();
+            row.append(PRAYER_NAMES[i]).append("  ")
+                    .append(String.format(Locale.US, "%02d:%02d", times[i].getHour(), times[i].getMinute()));
+            int color = i == next ? 0xFFFFFFFF : (next < 0 || i < next ? 0x47FFFFFF : 0x99FFFFFF);
+            row.setSpan(new android.text.style.ForegroundColorSpan(color), start, row.length(),
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        prayerTimes.setText(row);
+        prayerPanel.setVisibility(View.VISIBLE);
     }
 
     private void refreshPillsAfterNextDraw() {
