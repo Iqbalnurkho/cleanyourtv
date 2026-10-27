@@ -18,7 +18,7 @@ jobs:
       - name: Build debug APK
         working-directory: launcher
         run: |
-          if [ -x ./gradlew ]; then ./gradlew --no-daemon assembleDebug; else gradle --no-daemon assembleDebug; fi
+          if [ -x ./gradlew ]; then ./gradlew --no-daemon assembleDebug -PlauncherApplicationId=com.iqbal.tvhome; else gradle --no-daemon assembleDebug -PlauncherApplicationId=com.iqbal.tvhome; fi
       - uses: actions/upload-artifact@v4
         with:
           name: launcher-debug
