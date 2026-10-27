@@ -2614,6 +2614,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
         prayerTimes.setText(row);
+        PrayerCard.update((android.widget.LinearLayout) prayerPanel, times, next);
         prayerPanel.setVisibility(View.VISIBLE);
     }
 
